@@ -1,0 +1,3 @@
+Django
+paho-mqtt
+requests

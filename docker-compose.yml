@@ -1,0 +1,110 @@
+# version: "3.8"
+
+# services:
+#   # 🚀 MQTT Broker (Eclipse Mosquitto)
+#   mqtt_broker:
+#     image: eclipse-mosquitto:latest
+#     container_name: mqtt_broker
+#     ports:
+#       - "1883:1883"  # MQTT Port
+#     volumes:
+#     - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+#     - ./password.txt:/mosquitto/config/password.txt:ro
+#     command: mosquitto -c /mosquitto/config/mosquitto.conf
+#     restart: always
+#     networks:
+#       - backend
+
+#   # 🚀 Order Service (Django)
+#   order_service:
+#     build: ./microservice1_order_service
+#     container_name: order_service
+#     depends_on:
+#       - mqtt_broker
+#     ports:
+#       - "8000:8000"
+#     environment:
+#       - MQTT_BROKER=mqtt_broker
+#       - MQTT_PORT=1883
+#       # - MQTT_USER=sakib
+#       # - MQTT_PASSWORD=root
+#     restart: always
+#     networks:
+#       - backend
+
+#   # 🚀 Inventory Service (MQTT Subscriber)
+#   inventory_service:
+#     build: ./microservice2_inventory_service
+#     container_name: inventory_service
+#     depends_on:
+#       - mqtt_broker
+#       - order_service
+#     environment:
+#       - MQTT_BROKER=mqtt_broker
+#       - MQTT_PORT=1883
+#       - MQTT_USER=mqtt_user
+#       - MQTT_PASSWORD=your_password
+#     restart: always
+#     networks:
+#       - backend
+
+
+# networks:
+#   backend:
+#     driver: bridge
+
+
+
+version: "3.8"
+
+services:
+  # 🚀 MQTT Broker (Eclipse Mosquitto)
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    ports:
+      - "1883:1883"  # MQTT Port
+    volumes:
+       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - backend
+
+  # 🚀 Order Service (Django)
+  order_service:
+    build: ./microservice1_order_service
+    container_name: order_service
+    depends_on:
+      - mosquitto
+    ports:
+      - "8000:8000"
+    environment:
+      - MQTT_BROKER=mqtt_broker
+      - MQTT_PORT=1883
+    volumes:
+      - django_data:/app/data
+    restart: always
+    networks:
+      - backend
+
+  # 🚀 Inventory Service (MQTT Subscriber)
+  inventory_service:
+    build: ./microservice2_inventory_service
+    container_name: inventory_service
+    depends_on:
+      - mosquitto
+      - order_service
+    environment:
+      - MQTT_BROKER=mosquitto
+      - MQTT_PORT=1883
+    volumes:
+      - django_data:/app/data:ro  # Read-only access for inventory service
+    restart: always
+    networks:
+      - backend
+
+volumes:
+  django_data:  # Named volume for persistent storage
+
+networks:
+  backend:
+    driver: bridge
